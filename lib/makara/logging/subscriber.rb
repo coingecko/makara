@@ -15,17 +15,29 @@ module Makara
 
       protected
 
-      # grabs the adapter used in this event via it's object_id
-      # uses the adapter's connection proxy to modify the name of the event
-      # the name of the used connection will be prepended to the sql log
-      ###
-      ### [Master|Slave] User Load (1.3ms) SELECT * FROM `users`;
-      ###
+      # Rails 7.2 Compatibility Fix
+      #
+      # Grabs the adapter used in this event and prepends the connection name
+      # to the SQL log, e.g., "[replica/1] User Load (1.3ms) SELECT * FROM users"
+      #
+      # Rails 7.2 changed the event payload structure:
+      # - Rails < 7.2: event.payload[:connection_id] (integer object_id)
+      # - Rails >= 7.2: event.payload[:connection] (actual connection object)
+      #
+      # We check both for backward compatibility. Without this fix, the
+      # [replica/1] and [primary/1] prefixes won't appear in logs.
+      #
+      # See: https://github.com/instacart/makara/commit/ee22087
       def current_wrapper_name(event)
+        # Rails 7.2+ provides the connection object directly
+        connection = event.payload[:connection]
+        # Rails < 7.2 provides the connection's object_id
         connection_object_id = event.payload[:connection_id]
-        return nil unless connection_object_id
 
-        adapter = ObjectSpace._id2ref(connection_object_id)
+        return nil unless connection || connection_object_id
+
+        # Get the actual adapter object
+        adapter = connection || ObjectSpace._id2ref(connection_object_id)
 
         return nil unless adapter
         return nil unless adapter.respond_to?(:_makara_name)

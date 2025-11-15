@@ -37,4 +37,19 @@ ActiveSupport.on_load(:active_record) do
   ActiveRecord::LogSubscriber.log_subscribers.each do |subscriber|
     subscriber.extend ::Makara::Logging::Subscriber
   end
+
+  # Rails 7.2+ requires explicit adapter registration
+  if ActiveRecord::VERSION::MAJOR >= 7 && ActiveRecord::VERSION::MINOR >= 2
+    ActiveRecord::ConnectionAdapters.register(
+      "postgresql_makara",
+      "ActiveRecord::ConnectionAdapters::MakaraPostgreSQLAdapter",
+      "active_record/connection_adapters/postgresql_makara_adapter"
+    )
+
+    ActiveRecord::ConnectionAdapters.register(
+      "makara_postgresql",
+      "ActiveRecord::ConnectionAdapters::PostgreSQLMakaraAdapter",
+      "active_record/connection_adapters/makara_postgresql_adapter"
+    )
+  end
 end
