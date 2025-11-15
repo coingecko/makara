@@ -1,0 +1,15 @@
+source "https://rubygems.org"
+
+# Specify your gem"s dependencies in makara.gemspec
+gemspec path: "../"
+
+gem "activerecord", "~> 7.1.0"
+
+gem 'rake'
+gem 'rspec'
+gem 'rack', '~> 2.2'  # Pin to Rack 2.x to match production environment
+gem 'timecop'
+# gem 'mysql2', :platform => :ruby
+gem 'pg', '~> 1.0', :platform => :ruby
+gem 'activerecord-postgis-adapter', :platform => :ruby
+gem 'rgeo', :platform => :ruby

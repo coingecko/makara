@@ -7,32 +7,20 @@ on:
   pull_request:
 
 jobs:
-  build:
+  # PostgreSQL-only test suite for production use
+  postgresql:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         ruby:
-          - 2.5
-          - 2.6
-          - 2.7
-          - 3.0
-          - ruby-head
-          - jruby
-        gemfile:
-          - ar52
-          - ar60
-          - ar61
-          - ar-head
-        exclude:
-          - gemfile: ar52
-            ruby: 3.0
-          - gemfile: ar52
-            ruby: ruby-head
-    continue-on-error: ${{ matrix.ruby == 'jruby' || matrix.ruby == 'ruby-head' || matrix.gemfile == 'ar-head' }}
+          - '3.3'  # Your production Ruby version
+        activerecord:
+          - '7.2'  # Your production Rails version
+    name: PostgreSQL - Ruby ${{ matrix.ruby }} / Rails ${{ matrix.activerecord }}
     services:
       postgres:
-        image: postgis/postgis:12-3.1
+        image: postgis/postgis:14-3.3  # Updated PostgreSQL version
         ports:
           - 5432:5432
         env:
@@ -43,32 +31,26 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      mysql:
-        image: mysql:5.7
-        env:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_DATABASE: makara_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd "mysqladmin ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
     env:
-       BUNDLE_GEMFILE: gemfiles/${{ matrix.gemfile }}.gemfile
-       JRUBY_OPTS: --dev -J-Xmx1024M
+       BUNDLE_GEMFILE: gemfiles/activerecord_${{ matrix.activerecord }}.gemfile
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4  # Updated to v4
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - run: |
-          bundle exec rake
+      - name: Run PostgreSQL adapter tests
+        run: |
+          bundle exec rspec spec/active_record/connection_adapters/makara_postgresql_adapter_spec.rb
         env:
           PGHOST: localhost
           PGUSER: postgres
-          MYSQL_HOST: 127.0.0.1
+          RAILS_ENV: test
+      - name: Run full test suite (excluding MySQL)
+        run: |
+          bundle exec rspec --exclude-pattern "spec/**/*mysql*_spec.rb"
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
           RAILS_ENV: test
 
