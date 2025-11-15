@@ -62,7 +62,14 @@ describe ActiveRecord::ConnectionAdapters::MakaraAbstractAdapter::ErrorHandler d
   describe 'custom errors' do
 
     let(:config_path) { File.join(File.expand_path('../../../', __FILE__), 'support', 'mysql2_database_with_custom_errors.yml') }
-    let(:config) { YAML.load_file(config_path)['test'] }
+    let(:config) do
+      # Ruby 3.x requires unsafe_load for Regexp objects in YAML
+      if YAML.respond_to?(:unsafe_load_file)
+        YAML.unsafe_load_file(config_path)['test']
+      else
+        YAML.load_file(config_path)['test']
+      end
+    end
     let(:handler){ described_class.new }
     let(:proxy) { FakeAdapter.new(config) }
     let(:connection){ proxy.master_pool.connections.first }

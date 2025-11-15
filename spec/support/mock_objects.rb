@@ -1,6 +1,17 @@
 require 'active_record/connection_adapters/makara_abstract_adapter'
 
-class FakeConnection < Struct.new(:config)
+class FakeConnection < Struct.new(:config, keyword_init: false)
+
+  # Ruby 3.x compatibility: Accept both positional hash and keyword arguments
+  def initialize(config_or_keywords = nil, **keywords)
+    if config_or_keywords.nil? && keywords.any?
+      # Called with keyword arguments: FakeConnection.new(something: 'a')
+      super(keywords)
+    else
+      # Called with positional argument or no args
+      super(config_or_keywords)
+    end
+  end
 
   def ping
     'ping!'
