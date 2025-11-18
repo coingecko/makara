@@ -24,6 +24,7 @@ jobs:
         ports:
           - 5432:5432
         env:
+          POSTGRES_USER: runner
           POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: makara_test
         options: >-
@@ -44,7 +45,6 @@ jobs:
           bundle exec rspec spec/active_record/connection_adapters/makara_postgresql_adapter_spec.rb
         env:
           PGHOST: localhost
-          PGUSER: postgres
           RAILS_ENV: test
       - name: Run full test suite (excluding MySQL)
         run: |
